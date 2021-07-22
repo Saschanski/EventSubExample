@@ -15,6 +15,8 @@ namespace EventSubExample.Enums
         WebhookCallbackVerification,
         [Description("notification")]
         Notification,
+        [Description("revocation")]
+        Revocation,
         [Description("unknown")]
         Unknown
     }

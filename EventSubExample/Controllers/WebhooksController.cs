@@ -1,20 +1,13 @@
 ﻿using EventSubExample.Enums;
 using EventSubExample.Misc;
+using EventSubExample.Models.Revocation;
 using EventSubExample.Models.Verification;
 using EventSubExample.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Serialization;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EventSubExample.Controllers
@@ -59,13 +52,22 @@ namespace EventSubExample.Controllers
                         switch (MessageTypeHeader.First().ParseDescriptionToEnum<MessageType>())
                         {
                             case MessageType.WebhookCallbackVerification:
-                                string Body = await Request.GetRequestBodyAsync();
                                 var VerificationRequest = JsonConvert.DeserializeObject<WebhookCallbackVerification>(await Request.GetRequestBodyAsync());
                                 return Ok(VerificationRequest.Challenge);
                             case MessageType.Notification:
-                                if (Request.Headers.TryGetValue("Twitch-Eventsub-Subscription-Type", out var SubscriptionTypeHeader))
+                                if (Request.Headers.TryGetValue("Twitch-Eventsub-Subscription-Type", out var NotificationTypeHeader))
                                 {
-                                    eventSubService.ProcessRequest(SubscriptionTypeHeader.First().ParseDescriptionToEnum<SubscriptionType>(), await Request.GetRequestBodyAsync());
+                                    eventSubService.ProcessRequest(NotificationTypeHeader.First().ParseDescriptionToEnum<SubscriptionType>(), await Request.GetRequestBodyAsync());
+                                    return Ok();
+                                }
+                                else
+                                {
+                                    return Forbid();
+                                }
+                            case MessageType.Revocation:
+                                if (Request.Headers.TryGetValue("Twitch-Eventsub-Subscription-Type", out var RevocationTypeHeader))
+                                {
+                                    _ = Task.Run(async () => { new Requests.Revocation(logger).Process(await Request.GetRequestBodyAsync()); });
                                     return Ok();
                                 }
                                 else
